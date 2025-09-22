@@ -37,13 +37,16 @@ def estimate_marks(text):
     else:
         return "5 marks"
 
-# 🤖 Get AI-generated answer
+# 🤖 Get AI-generated answer with error handling
 def get_ai_answer(question):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": question}]
-    )
-    return response['choices'][0]['message']['content']
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": question}]
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        return f"❌ Error fetching answer: {str(e)}"
 
 # 🧠 OCR placeholder for image-based questions
 def extract_text_from_image(image_file):
@@ -100,4 +103,16 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    conv_handler = Conversation
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            SELECT_STANDARD: [MessageHandler(filters.TEXT & ~filters.COMMAND, select_standard)],
+            SELECT_SUBJECT: [MessageHandler(filters.TEXT & ~filters.COMMAND, select_subject)],
+            ASK_QUESTION: [MessageHandler(filters.TEXT | filters.PHOTO, handle_question)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+
+    app.add_handler(conv_handler)
+    app.run_polling()
+
