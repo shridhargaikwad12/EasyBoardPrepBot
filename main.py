@@ -11,19 +11,19 @@ from telegram.ext import (
     ConversationHandler,
 )
 
-# 🔐 Tokens
+# 🔐 Load tokens
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# 🧠 States
+# 🧠 Conversation states
 SELECT_STANDARD, SELECT_SUBJECT, ASK_QUESTION = range(3)
 
-# 🎓 Options
+# 🎓 Standards and Subjects
 standards = ["Class 9", "Class 10", "Class 11", "Class 12"]
 subjects = ["Science", "Maths", "English", "Social Science"]
 
-# 🧠 Marks Estimation
+# 🧠 Estimate marks based on question length
 def estimate_marks(text):
     length = len(text.split())
     if length <= 5:
@@ -37,7 +37,7 @@ def estimate_marks(text):
     else:
         return "5 marks"
 
-# 🤖 GPT Answer
+# 🤖 Get AI-generated answer with error handling
 def get_ai_answer(question):
     try:
         response = openai.ChatCompletion.create(
@@ -48,26 +48,26 @@ def get_ai_answer(question):
     except Exception as e:
         return f"❌ Error fetching answer: {str(e)}"
 
-# 🎬 Start
+# 🎬 Start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = ReplyKeyboardMarkup([standards], one_time_keyboard=True)
-    await update.message.reply_text("Welcome to EasyBoardPrepBot! 👋\nSelect your standard:", reply_markup=reply_markup)
+    await update.message.reply_text("Welcome to EasyBoardPrepBot! 👋\nPlease select your standard:", reply_markup=reply_markup)
     return SELECT_STANDARD
 
-# 🎓 Standard
+# 🎓 Standard selected
 async def select_standard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["standard"] = update.message.text
     reply_markup = ReplyKeyboardMarkup([subjects], one_time_keyboard=True)
-    await update.message.reply_text("Now choose your subject:", reply_markup=reply_markup)
+    await update.message.reply_text(f"Selected: {update.message.text}\nNow choose your subject:", reply_markup=reply_markup)
     return SELECT_SUBJECT
 
-# 📚 Subject
+# 📚 Subject selected
 async def select_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["subject"] = update.message.text
-    await update.message.reply_text("Send your question or image 📷")
+    await update.message.reply_text(f"Subject: {update.message.text}\nNow send your question or image 📷")
     return ASK_QUESTION
 
-# ❓ Question
+# ❓ Handle question or image
 async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.photo:
         await update.message.reply_text("Image received. OCR not implemented yet.")
@@ -78,7 +78,7 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     marks = estimate_marks(question_text)
     answer = get_ai_answer(question_text)
 
-    sponsored = f"Sponsored: Join XYZ Coaching for Class {context.user_data['standard'][-2:]} {context.user_data['subject']} 🔥"
+    sponsored = f"Sponsored: Join XYZ Coaching for Class {context.user_data['standard'][-2:]} {context.user_data['subject']} 🧪"
 
     await update.message.reply_text(
         f"📘 Standard: {context.user_data['standard']}\n"
@@ -95,7 +95,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Session cancelled. Type /start to begin again.")
     return ConversationHandler.END
 
-# 🚀 Main
+# 🚀 Main app
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -112,5 +112,3 @@ if __name__ == "__main__":
 
     app.add_handler(conv_handler)
     app.run_polling()
-
-
