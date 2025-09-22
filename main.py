@@ -11,19 +11,19 @@ from telegram.ext import (
     ConversationHandler,
 )
 
-# 🔐 Load tokens
+# 🔐 Tokens
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# 🧠 Conversation states
+# 🧠 States
 SELECT_STANDARD, SELECT_SUBJECT, ASK_QUESTION = range(3)
 
-# 🎓 Standards and Subjects
+# 🎓 Options
 standards = ["Class 9", "Class 10", "Class 11", "Class 12"]
 subjects = ["Science", "Maths", "English", "Social Science"]
 
-# 🧠 Estimate marks based on question length
+# 🧠 Marks Estimation
 def estimate_marks(text):
     length = len(text.split())
     if length <= 5:
@@ -37,7 +37,7 @@ def estimate_marks(text):
     else:
         return "5 marks"
 
-# 🤖 Get AI-generated answer with error handling
+# 🤖 GPT Answer
 def get_ai_answer(question):
     try:
         response = openai.ChatCompletion.create(
@@ -48,48 +48,45 @@ def get_ai_answer(question):
     except Exception as e:
         return f"❌ Error fetching answer: {str(e)}"
 
-# 🧠 OCR placeholder for image-based questions
-def extract_text_from_image(image_file):
-    return "Image OCR not implemented yet. Please type your question."
-
-# 🎬 Start command
+# 🎬 Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = ReplyKeyboardMarkup([standards], one_time_keyboard=True)
-    await update.message.reply_text("Welcome to EasyBoardPrepBot! 👋\nPlease select your standard:", reply_markup=reply_markup)
+    await update.message.reply_text("Welcome to EasyBoardPrepBot! 👋\nSelect your standard:", reply_markup=reply_markup)
     return SELECT_STANDARD
 
-# 🎓 Standard selected
+# 🎓 Standard
 async def select_standard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["standard"] = update.message.text
     reply_markup = ReplyKeyboardMarkup([subjects], one_time_keyboard=True)
-    await update.message.reply_text(f"Selected: {update.message.text}\nNow choose your subject:", reply_markup=reply_markup)
+    await update.message.reply_text("Now choose your subject:", reply_markup=reply_markup)
     return SELECT_SUBJECT
 
-# 📚 Subject selected
+# 📚 Subject
 async def select_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["subject"] = update.message.text
-    await update.message.reply_text(f"Subject: {update.message.text}\nNow send your question or image 📷")
+    await update.message.reply_text("Send your question or image 📷")
     return ASK_QUESTION
 
-# ❓ Handle question or image
+# ❓ Question
 async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.photo:
-        await update.message.reply_text("Processing image... 📷")
-        image_file = await update.message.photo[-1].get_file()
-        question_text = extract_text_from_image(image_file)
+        await update.message.reply_text("Image received. OCR not implemented yet.")
+        question_text = "Image question placeholder"
     else:
         question_text = update.message.text
 
     marks = estimate_marks(question_text)
     answer = get_ai_answer(question_text)
 
+    sponsored = f"Sponsored: Join XYZ Coaching for Class {context.user_data['standard'][-2:]} {context.user_data['subject']} 🔥"
+
     await update.message.reply_text(
-        f"📘 Standard: {context.user_data.get('standard')}\n"
-        f"📚 Subject: {context.user_data.get('subject')}\n"
+        f"📘 Standard: {context.user_data['standard']}\n"
+        f"📚 Subject: {context.user_data['subject']}\n"
         f"📝 Question: {question_text}\n"
         f"🔍 Estimated Marks: {marks}\n\n"
         f"✅ Step-by-step solution:\n{answer}\n\n"
-        f"Sponsored: Join XYZ Coaching for Class {context.user_data.get('standard')[-2:]} {context.user_data.get('subject')} 🔥"
+        f"{sponsored}"
     )
     return ASK_QUESTION
 
@@ -98,7 +95,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Session cancelled. Type /start to begin again.")
     return ConversationHandler.END
 
-# 🚀 Main app
+# 🚀 Main
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -115,4 +112,5 @@ if __name__ == "__main__":
 
     app.add_handler(conv_handler)
     app.run_polling()
+
 
